@@ -34,7 +34,7 @@ create procedure insertC(in name varchar(30),in tel varchar(24),in email varchar
 begin
     declare exit handler for sqlstate '23000'
     begin
-        select 'Error. ctel duplicate';
+        select 'Error. ctel duplicate' as 'Error Message!';
     end;
     insert into customers (cname,ctel,cemail,caddress) values (name,tel,email,address);
     select 'insert Success.';
@@ -56,7 +56,7 @@ create procedure updateC(in id int,in name varchar(30),in tel varchar(24),in ema
 begin
     declare exit handler for sqlstate '23000'
     begin
-        select 'Error. ctel duplicate';
+        select 'Error. ctel duplicate' as 'Error Message!';
     end;
     update customers set cname=name ,ctel=tel ,cemail =email,caddress=address where customerID=id;
     select 'update Success.';
@@ -65,7 +65,7 @@ end |
 
 ---查詢: 電話, 姓名 => 關鍵字, 若無 => 全部
 
-查詢: 電話
+--查詢: 電話  若無('') => 全部
 \d |
 create procedure selectCtel (in tel varchar(24))
 begin
@@ -77,6 +77,18 @@ begin
 end |
 \d ;
 
+--查詢: 姓名  若無('') => 全部
+
+\d |
+create procedure selectCname (in name varchar(30))
+begin
+    
+    set @kw1 = concat('%',name,'%') COLLATE utf8_unicode_ci;
+    
+    select * from customers where cname like @kw1;
+    
+end |
+\d ;
 
 
 
@@ -88,7 +100,7 @@ create procedure insertS(in name varchar(30),in tel varchar(24),in address varch
 begin
     declare exit handler for sqlstate '23000'
     begin
-        select 'Error. stel duplicate';
+        select 'Error. stel duplicate' as 'Error Message!';
     end;
     insert into Suppliers (sname,stel,saddress) values (name,tel,address);
     select 'insert Success.';
@@ -110,7 +122,7 @@ create procedure updateS(in id int,in name varchar(30),in tel varchar(24),in add
 begin
 declare exit handler for sqlstate '23000'
     begin
-        select 'Error. ctel duplicate';
+        select 'Error. ctel duplicate' as 'Error Message!';
     end;
 update Suppliers set sname=name,stel=tel,saddress=address where SupplierID=id;
 select 'update Success.';
@@ -118,6 +130,32 @@ end |
 \d ; 
 
 ---查詢: 名稱,電話 => 關鍵字, 若無 => 全部
+
+
+--查詢: 名稱  若無('') => 全部
+\d |
+create procedure selectSname(in name varchar(24))
+begin
+    
+    set @kw1 = concat('%',name,'%') COLLATE utf8_unicode_ci;
+    
+    select * from suppliers where sname like @kw1;
+    
+end |
+\d ;
+
+--查詢: 電話  若無('') => 全部
+\d |
+create procedure selectStel(in tel varchar(24))
+begin
+    
+    set @kw1 = concat('%',tel,'%') COLLATE utf8_unicode_ci;
+    
+    select * from suppliers where stel like @kw1;
+    
+end |
+\d ;
+
 
 ---8. 商品: 新增,刪除,修改 
 
@@ -127,7 +165,7 @@ create procedure insertP(in num int,in name varchar(40),in price decimal(19,4),i
 begin
     declare exit handler for sqlstate '23000'
     begin
-        select 'Error. Pnum duplicate or No such SupplierID';
+        select 'Error. Pnum duplicate or No such SupplierID' as 'Error Message!';
     end;
     set @price=price;
     insert into Products (Pnum,Pname,Unitprice,SupplierID) values (num,name,price,sid);
@@ -150,7 +188,7 @@ create procedure updateP(in id int,in num int,in name varchar(40),in price decim
 begin
 declare exit handler for sqlstate '23000'
     begin
-        select 'Error. Pnum duplicate or No such SupplierID';
+        select 'Error. Pnum duplicate or No such SupplierID' as 'Error Message!';
     end;
     
     update Products set Pnum=num,Pname=name,Unitprice=price,SupplierID=sid where productid=id;
@@ -160,6 +198,17 @@ end |
 
 
 ---查詢: 名稱 => 關鍵字, 若無 => 全部
+\d |
+create procedure selectPname(in name varchar(30))
+begin
+    
+    set @kw1 = concat('%',name,'%') COLLATE utf8_unicode_ci;
+    
+    select * from products where Pname like @kw1;
+    
+end |
+\d ;
+
 
 
 ---9. 訂單: 新增,刪除 => 包含訂單細項的處理
@@ -170,7 +219,7 @@ create procedure insertO(in num int,in customerid int,in productid int,in uprice
 begin
     declare exit handler for sqlstate '23000'
     begin
-        select 'Error. Onum duplicate or Foreign error';
+        select 'Error. Onum duplicate or Foreign error' as 'Error Message!';
     end;
     insert into orders (onum,customerid) values (num,customerid);
     insert into `order details` (ODnum,ProductID,UnitPrice,quantity) values (num,productid,uprice,quantity);
@@ -196,7 +245,7 @@ create procedure insertOD(in num int,in productid int,in uprice decimal(19,4),in
 begin
     declare exit handler for sqlstate '23000'
     begin
-        select 'Error. Foreign error';
+        select 'Error. Foreign error' as 'Error Message!';
     end;
     insert into `order details` (ODnum,ProductID,UnitPrice,quantity) values (num,productid,uprice,quantity);
     select 'insert Success.';
@@ -218,7 +267,7 @@ create procedure updateOD(in id int,uprice decimal(19,4),in quantity smallint(6)
 begin
 declare exit handler for sqlstate '23000'
     begin
-        select 'Error. Foreign error';
+        select 'Error. Foreign error' as 'Error Message!';
     end;
     set @quantity=quantity;
     update `order details` set unitprice=uprice,quantity=@quantity where odID=id;
