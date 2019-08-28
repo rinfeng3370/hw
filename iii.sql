@@ -29,76 +29,186 @@ DELIMITER $$
 -- 程序
 --
 DROP PROCEDURE IF EXISTS `a`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `a` (IN `id` INT)  begin select o.orderid,o.onum,o.customerID,od.odid,od.odnum,od.productid,od.unitprice,od.quantity from orders o join customers c using(customerID) join `order details` od on (o.onum = od.odnum) where c.customerID=id; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `a` (IN `name` VARCHAR(30))  begin set @kw = concat('%',name,'%'); select c.cname, o.*,od.* from orders o join customers c using(customerid) join `order details` od on (o.onum = od.odnum) where c.cname like @kw ; end$$
 
 DROP PROCEDURE IF EXISTS `b`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `b` (IN `id` INT)  begin select c.customerID,floor(sum(od.unitprice*od.quantity)) as total from orders o join customers c using(customerID) join `order details` od on (o.onum = od.odnum) where c.customerID=id;  end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `b` (IN `name` VARCHAR(30))  begin set @kw = concat('%',name,'%'); select c.cname,floor(sum(od.unitprice*od.quantity)) as total from orders o join customers c using(customerid) join `order details` od on (o.onum = od.odnum) where c.cname like @kw group by c.cname; end$$
+
+DROP PROCEDURE IF EXISTS `c`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `c` (IN `id` INT)  begin select p.pname,c.cname,SUM(od.quantity) quantity from orders o join `order details` od on (o.onum = od.odnum) join customers c using(customerid) join products p using(productid) where p.pnum= id group by c.cname; end$$
+
+DROP PROCEDURE IF EXISTS `d`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `d` (IN `name` VARCHAR(24))  begin set @kw = concat('%',name,'%'); select s.supplierid,s.sname,p.productid,p.pname,SUM(od.quantity) quantity from suppliers s join products p using(supplierid) join `order details` od using(productid) where s.sname like @kw group by p.pname; end$$
 
 DROP PROCEDURE IF EXISTS `deleteC`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `deleteC` (IN `id` INT)  BEGIN        
- delete from customers where CustomerID = id;
- select 'delete Success.';
+CREATE DEFINER=`root`@`localhost` PROCEDURE `deleteC` (IN `id` INT)  begin    
+    delete from customers where CustomerID = id;
+    
 end$$
 
 DROP PROCEDURE IF EXISTS `deleteO`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `deleteO` (IN `num` INT)  begin     delete from `order details` where ODnum=num;     delete from orders where onum=num;     select 'delete Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `deleteO` (IN `num` INT)  begin   
+    delete from `order details` where ODnum=num;
+    delete from orders where onum=num;
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `deleteOD`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `deleteOD` (IN `id` INT)  begin     delete from `order details` where odID=id;     select 'delete Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `deleteOD` (IN `id` INT)  begin
+    delete from `order details` where odID=id;
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `deleteP`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `deleteP` (IN `id` INT)  begin     delete from products where productid=id;     select 'delete Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `deleteP` (IN `id` INT)  begin   
+    delete from products where productid=id;
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `deleteS`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `deleteS` (IN `id` INT)  begin   delete from Suppliers where SupplierID=id;   select 'delete Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `deleteS` (IN `id` INT)  begin
+  delete from Suppliers where SupplierID=id;
+  
+end$$
 
 DROP PROCEDURE IF EXISTS `insertC`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `insertC` (IN `name` VARCHAR(30), IN `tel` VARCHAR(24), IN `email` VARCHAR(30), IN `address` VARCHAR(60))  begin     declare exit handler for sqlstate '23000'     begin         select 'Error. ctel duplicate' as 'Error Message!';     end;     insert into customers (cname,ctel,cemail,caddress) values (name,tel,email,address);     select 'insert Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `insertC` (IN `name` VARCHAR(30), IN `tel` VARCHAR(24), IN `email` VARCHAR(30), IN `address` VARCHAR(60))  begin
+    declare exit handler for sqlstate '23000'
+    begin
+        select 'Error. ctel duplicate' as 'Error Message!';
+    end;
+    insert into customers (cname,ctel,cemail,caddress) values (name,tel,email,address);
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `insertO`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `insertO` (IN `num` INT, IN `customerid` INT, IN `productid` INT, IN `uprice` DECIMAL(19,4), IN `quantity` SMALLINT(6))  begin     declare exit handler for sqlstate '23000'     begin         select 'Error. Onum duplicate or Foreign error' as 'Error Message!';     end;     insert into orders (onum,customerid) values (num,customerid);     insert into `order details` (ODnum,ProductID,UnitPrice,quantity) values (num,productid,uprice,quantity);     select 'insert Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `insertO` (IN `num` INT, IN `customerid` INT, IN `productid` INT, IN `uprice` DECIMAL(19,4), IN `quantity` SMALLINT(6))  begin
+    declare continue handler for sqlstate '23000'
+    begin
+        select 'Error. Onum duplicate or Foreign error' as 'Error Message!';
+    end;
+    insert into orders (onum,customerid) values (num,customerid);
+    insert into `order details` (ODnum,ProductID,UnitPrice,quantity) values (num,productid,uprice,quantity);
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `insertOD`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `insertOD` (IN `num` INT, IN `productid` INT, IN `uprice` DECIMAL(19,4), IN `quantity` SMALLINT(6))  begin     declare exit handler for sqlstate '23000'     begin         select 'Error. Foreign error' as 'Error Message!';     end;     insert into `order details` (ODnum,ProductID,UnitPrice,quantity) values (num,productid,uprice,quantity);     select 'insert Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `insertOD` (IN `num` INT, IN `productid` INT, IN `uprice` DECIMAL(19,4), IN `quantity` SMALLINT(6))  begin
+    declare exit handler for sqlstate '23000'
+    begin
+        select 'Error. Foreign error' as 'Error Message!';
+    end;
+    insert into `order details` (ODnum,ProductID,UnitPrice,quantity) values (num,productid,uprice,quantity);
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `insertP`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `insertP` (IN `num` INT, IN `name` VARCHAR(40), IN `price` DECIMAL(19,4), IN `sid` INT)  begin     declare exit handler for sqlstate '23000'     begin         select 'Error. Pnum duplicate or No such SupplierID' as 'Error Message!';     end;     set @price=price;     insert into Products (Pnum,Pname,Unitprice,SupplierID) values (num,name,price,sid);     select 'insert Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `insertP` (IN `num` INT, IN `name` VARCHAR(40), IN `price` DECIMAL(19,4), IN `sid` INT)  begin
+    declare exit handler for sqlstate '23000'
+    begin
+        select 'Error. Pnum duplicate or No such SupplierID' as 'Error Message!';
+    end;
+    set @price=price;
+    insert into Products (Pnum,Pname,Unitprice,SupplierID) values (num,name,price,sid);
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `insertS`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `insertS` (IN `name` VARCHAR(30), IN `tel` VARCHAR(24), IN `address` VARCHAR(60))  begin     declare exit handler for sqlstate '23000'     begin         select 'Error. stel duplicate' as 'Error Message!';     end;     insert into Suppliers (sname,stel,saddress) values (name,tel,address);     select 'insert Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `insertS` (IN `name` VARCHAR(30), IN `tel` VARCHAR(24), IN `address` VARCHAR(60))  begin
+    declare exit handler for sqlstate '23000'
+    begin
+        select 'Error. stel duplicate' as 'Error Message!';
+    end;
+    insert into Suppliers (sname,stel,saddress) values (name,tel,address);
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `selectCname`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `selectCname` (IN `name` VARCHAR(30))  begin      set @kw1 = concat('%',name,'%') COLLATE utf8_unicode_ci;      select * from customers where cname like @kw1;  end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `selectCname` (IN `name` VARCHAR(30))  begin
+    
+    set @kw1 = concat('%',name,'%') COLLATE utf8_unicode_ci;
+    
+    select * from customers where cname like @kw1;
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `selectCtel`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `selectCtel` (IN `tel` VARCHAR(24))  begin         set @kw1 = concat('%',tel,'%') COLLATE utf8_unicode_ci;      select * from customers where ctel like @kw1;      end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `selectCtel` (IN `tel` VARCHAR(24))  begin
+    
+    set @kw1 = concat('%',tel,'%') COLLATE utf8_unicode_ci;
+    
+    select * from customers where ctel like @kw1;
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `selectPname`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `selectPname` (IN `name` VARCHAR(30))  begin      set @kw1 = concat('%',name,'%') COLLATE utf8_unicode_ci;      select * from products where Pname like @kw1;  end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `selectPname` (IN `name` VARCHAR(30))  begin
+    
+    set @kw1 = concat('%',name,'%') COLLATE utf8_unicode_ci;
+    
+    select * from products where Pname like @kw1;
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `selectSname`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `selectSname` (IN `name` VARCHAR(24))  begin      set @kw1 = concat('%',name,'%') COLLATE utf8_unicode_ci;      select * from suppliers where sname like @kw1;  end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `selectSname` (IN `name` VARCHAR(24))  begin
+    
+    set @kw1 = concat('%',name,'%') COLLATE utf8_unicode_ci;
+    
+    select * from suppliers where sname like @kw1;
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `selectStel`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `selectStel` (IN `tel` VARCHAR(24))  begin      set @kw1 = concat('%',tel,'%') COLLATE utf8_unicode_ci;      select * from suppliers where stel like @kw1;  end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `selectStel` (IN `tel` VARCHAR(24))  begin
+    
+    set @kw1 = concat('%',tel,'%') COLLATE utf8_unicode_ci;
+    
+    select * from suppliers where stel like @kw1;
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `updateC`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `updateC` (IN `id` INT, IN `name` VARCHAR(30), IN `tel` VARCHAR(24), IN `email` VARCHAR(30), IN `address` VARCHAR(60))  begin     declare exit handler for sqlstate '23000'     begin         select 'Error. ctel duplicate' as 'Error Message!';     end;     update customers set cname=name ,ctel=tel ,cemail =email,caddress=address where customerID=id;     select 'update Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `updateC` (IN `id` INT, IN `name` VARCHAR(30), IN `tel` VARCHAR(24), IN `email` VARCHAR(30), IN `address` VARCHAR(60))  begin
+    declare exit handler for sqlstate '23000'
+    begin
+        select 'Error. ctel duplicate' as 'Error Message!';
+    end;
+    update customers set cname=name ,ctel=tel ,cemail =email,caddress=address where customerID=id;
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `updateOD`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `updateOD` (IN `id` INT, `uprice` DECIMAL(19,4), IN `quantity` SMALLINT(6))  begin declare exit handler for sqlstate '23000'     begin         select 'Error. Foreign error' as 'Error Message!';     end;     set @quantity=quantity;     update `order details` set unitprice=uprice,quantity=@quantity where odID=id;     select 'update Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `updateOD` (IN `id` INT, `uprice` DECIMAL(19,4), IN `quantity` SMALLINT(6))  begin
+declare exit handler for sqlstate '23000'
+    begin
+        select 'Error. Foreign error' as 'Error Message!';
+    end;
+    set @quantity=quantity;
+    update `order details` set unitprice=uprice,quantity=@quantity where odID=id;
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `updateP`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `updateP` (IN `id` INT, IN `num` INT, IN `name` VARCHAR(40), IN `price` DECIMAL(19,4), IN `sid` INT)  begin declare exit handler for sqlstate '23000'     begin         select 'Error. Pnum duplicate or No such SupplierID' as 'Error Message!';     end;      update Products set Pnum=num,Pname=name,Unitprice=price,SupplierID=sid where productid=id;     select 'update Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `updateP` (IN `id` INT, IN `num` INT, IN `name` VARCHAR(40), IN `price` DECIMAL(19,4), IN `sid` INT)  begin
+declare exit handler for sqlstate '23000'
+    begin
+        select 'Error. Pnum duplicate or No such SupplierID' as 'Error Message!';
+    end;
+    
+    update Products set Pnum=num,Pname=name,Unitprice=price,SupplierID=sid where productid=id;
+    
+end$$
 
 DROP PROCEDURE IF EXISTS `updateS`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `updateS` (IN `id` INT, IN `name` VARCHAR(30), IN `tel` VARCHAR(24), IN `address` VARCHAR(60))  begin declare exit handler for sqlstate '23000'     begin         select 'Error. ctel duplicate' as 'Error Message!';     end; update Suppliers set sname=name,stel=tel,saddress=address where SupplierID=id; select 'update Success.'; end$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `updateS` (IN `id` INT, IN `name` VARCHAR(30), IN `tel` VARCHAR(24), IN `address` VARCHAR(60))  begin
+declare exit handler for sqlstate '23000'
+    begin
+        select 'Error. ctel duplicate' as 'Error Message!';
+    end;
+update Suppliers set sname=name,stel=tel,saddress=address where SupplierID=id;
 
---
--- 函式
---
-DROP FUNCTION IF EXISTS `selectCtelF`$$
-CREATE DEFINER=`root`@`localhost` FUNCTION `selectCtelF` (`tel` VARCHAR(24)) RETURNS TEXT CHARSET utf8 COLLATE utf8_unicode_ci begin     declare result varchar(30);     select * from customers into result;     if tel is not null then     call selectCtel(tel);      else     return result;     end if; end$$
+end$$
 
 DELIMITER ;
 
@@ -155,7 +265,14 @@ INSERT INTO `order details` (`odID`, `ODnum`, `ProductID`, `UnitPrice`, `quantit
 (5, 5, 8, '70.0000', 30),
 (6, 4, 7, '130.0000', 40),
 (8, 2, 8, '90.0000', 15),
-(9, 2, 8, '65.0000', 60);
+(9, 2, 8, '65.0000', 60),
+(10, 1, 1, '65.0000', 80),
+(11, 6, 5, '45.0000', 110),
+(12, 6, 6, '33.0000', 30),
+(13, 7, 6, '35.0000', 50),
+(14, 8, 6, '28.0000', 100),
+(15, 1, 1, '50.0000', 100),
+(18, 1, 1, '60.0000', 50);
 
 -- --------------------------------------------------------
 
@@ -178,7 +295,10 @@ INSERT INTO `orders` (`OrderID`, `Onum`, `CustomerID`) VALUES
 (1, 1, 1),
 (3, 2, 1),
 (6, 4, 10),
-(7, 5, 10);
+(7, 5, 10),
+(8, 6, 11),
+(9, 7, 12),
+(10, 8, 13);
 
 -- --------------------------------------------------------
 
@@ -210,21 +330,6 @@ INSERT INTO `products` (`ProductID`, `Pnum`, `Pname`, `Unitprice`, `SupplierID`)
 -- --------------------------------------------------------
 
 --
--- 替換檢視表以便查看 `selectc`
--- (請參考以下實際畫面)
---
-DROP VIEW IF EXISTS `selectc`;
-CREATE TABLE `selectc` (
-`CustomerID` int(11)
-,`Cname` varchar(30)
-,`Ctel` varchar(24)
-,`Cemail` varchar(30)
-,`Caddress` varchar(60)
-);
-
--- --------------------------------------------------------
-
---
 -- 資料表結構 `suppliers`
 --
 
@@ -247,15 +352,6 @@ INSERT INTO `suppliers` (`SupplierID`, `Sname`, `Stel`, `Saddress`) VALUES
 (7, 'PB Knackebrod AB', '031-987 65 43', 'Kaloadagatan 13'),
 (8, 'Norske Meierier', '(0)2-953010', 'Hatlevegen 5'),
 (9, 'Bigfoot Breweries', '(503) 555-9931', '3400 - 8th Avenue Suite 210');
-
--- --------------------------------------------------------
-
---
--- 檢視表結構 `selectc`
---
-DROP TABLE IF EXISTS `selectc`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `selectc`  AS  select `customers`.`CustomerID` AS `CustomerID`,`customers`.`Cname` AS `Cname`,`customers`.`Ctel` AS `Ctel`,`customers`.`Cemail` AS `Cemail`,`customers`.`Caddress` AS `Caddress` from `customers` ;
 
 --
 -- 已傾印資料表的索引
@@ -307,19 +403,19 @@ ALTER TABLE `suppliers`
 -- 使用資料表自動遞增(AUTO_INCREMENT) `customers`
 --
 ALTER TABLE `customers`
-  MODIFY `CustomerID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `CustomerID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- 使用資料表自動遞增(AUTO_INCREMENT) `order details`
 --
 ALTER TABLE `order details`
-  MODIFY `odID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `odID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- 使用資料表自動遞增(AUTO_INCREMENT) `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `OrderID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `OrderID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- 使用資料表自動遞增(AUTO_INCREMENT) `products`
